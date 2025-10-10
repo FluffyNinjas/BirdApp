@@ -35,3 +35,7 @@ def generate_bird_fact(bird_name):
     except Exception as e:
         logger.error(f"Error generating AI fact for {bird_name}: {e}")
         return f"This is a {bird_name}. (AI fact unavailable)"
+    
+# Example usage:
+# fact = generate_bird_fact("northern cardinal")
+# print(fact)

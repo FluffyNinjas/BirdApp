@@ -1,7 +1,8 @@
 # backend/utils/ml_client.py
 import requests
+import os
 
-FASTAPI_URL = "http://localhost:8001/predict"  # or your deployed FastAPI URL
+FASTAPI_URL = os.getenv("ML_SERVICE_URL", "http://localhost:8001/predict")
 
 def classify_bird(image_file):
     """
