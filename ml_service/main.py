@@ -1,20 +1,22 @@
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-import tensorflow as tf
+import torch
+from transformers import AutoImageProcessor, AutoModelForImageClassification
 import numpy as np
 from PIL import Image
 import io
 from pathlib import Path
 import logging
+from pathlib import Path
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = FastAPI(
-    title="ML Image Classification API",
-    description="Image classification service using pre-trained model",
+    title="ML Image Classification API(Pytorch)",
+    description="Image classification service using fine-tuned ViT model",
     version="1.0.0"
 )
 
@@ -29,22 +31,26 @@ app.add_middleware(
 
 # Global variables
 model = None
-IMG_SIZE = (224, 224)  # Adjust based on your model
-LABELS = ['cat', 'dog', 'bird']  # Replace with your actual labels
+processor = None
+LABELS = []  
+IMG_SIZE = (224, 224)  # Model input size
 
 @app.on_event("startup")
 async def load_model():
     """Load the trained model when FastAPI starts"""
-    global model
-    try:
-        model_path = Path("models/image_model.h5")
-        
-        if not model_path.exists():
-            logger.error(f"Model file not found at {model_path}")
-            logger.info("Please copy your trained model to fastapi_service/models/image_model.h5")
+    global model, processor, LABELS
+    model_dir = Path("models/bird_model")
+    try:        
+        if not model_dir.exists():
+            logger.error(f"Model file not found at {model_dir}")
+            logger.info("Please copy your trained model to training/models/bird_model")
             return
-        
-        model = tf.keras.models.load_model(str(model_path))
+
+        model = AutoModelForImageClassification.from_pretrained(model_dir)
+        processor = AutoImageProcessor.from_pretrained(model_dir)
+        model.eval()  # Set model to evaluation mode
+
+        LABELS = list(model.config.id2label.values())
         logger.info("✅ Model loaded successfully!")
         logger.info(f"Model input shape: {model.input_shape}")
         
@@ -114,28 +120,19 @@ async def predict_image(file: UploadFile = File(...)):
         # Resize to model's expected input size
         img = img.resize(IMG_SIZE)
         
-        # Convert to array and normalize
-        img_array = np.array(img, dtype=np.float32) / 255.0
-        
-        # Add batch dimension
-        img_array = np.expand_dims(img_array, axis=0)
-        
-        logger.info(f"Image preprocessed. Shape: {img_array.shape}")
-        
-        # Make prediction
-        predictions = model.predict(img_array, verbose=0)
-        
-        # Get predicted class and confidence
-        predicted_idx = np.argmax(predictions[0])
-        confidence = float(predictions[0][predicted_idx])
-        predicted_label = LABELS[predicted_idx]
-        
-        # Create response with all class probabilities
+        # Process image for model input
+        inputs = processor(images=img, return_tensors="pt")
+        with torch.no_grad():
+            outputs = model(**inputs)
+            logits = outputs.logits
+            probs = torch.nn.functional.softmax(logits, dim=1).numpy()[0]
+            predicted_index = np.argmax(probs)
+            confidence = probs[0][predicted_index].item()
+
+        predicted_label = model.config.id2label[predicted_index]
         all_predictions = {
-            LABELS[i]: float(predictions[0][i]) 
-            for i in range(len(LABELS))
+            model.config.id2label[i]: float(probs[i]) for i in range(len(probs))
         }
-        
         result = {
             "success": True,
             "label": predicted_label,
@@ -154,58 +151,6 @@ async def predict_image(file: UploadFile = File(...)):
             status_code=500,
             detail=f"Prediction failed: {str(e)}"
         )
-
-@app.post("/batch-predict")
-async def batch_predict(files: list[UploadFile] = File(...)):
-    """
-    Predict multiple images at once
-    
-    Args:
-        files: List of image files
-    
-    Returns:
-        List of predictions for each image
-    """
-    if model is None:
-        raise HTTPException(status_code=503, detail="Model not loaded")
-    
-    if len(files) > 10:
-        raise HTTPException(
-            status_code=400,
-            detail="Maximum 10 images per batch"
-        )
-    
-    results = []
-    
-    for file in files:
-        try:
-            contents = await file.read()
-            img = Image.open(io.BytesIO(contents))
-            
-            if img.mode != 'RGB':
-                img = img.convert('RGB')
-            
-            img = img.resize(IMG_SIZE)
-            img_array = np.array(img, dtype=np.float32) / 255.0
-            img_array = np.expand_dims(img_array, axis=0)
-            
-            predictions = model.predict(img_array, verbose=0)
-            predicted_idx = np.argmax(predictions[0])
-            confidence = float(predictions[0][predicted_idx])
-            
-            results.append({
-                "filename": file.filename,
-                "label": LABELS[predicted_idx],
-                "confidence": confidence
-            })
-            
-        except Exception as e:
-            results.append({
-                "filename": file.filename,
-                "error": str(e)
-            })
-    
-    return {"results": results}
 
 if __name__ == "__main__":
     import uvicorn
