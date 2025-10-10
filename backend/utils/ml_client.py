@@ -1,20 +1,19 @@
+# backend/utils/ml_client.py
 import requests
 
-FASTAPI_URL = "http://localhost:8000/predict"  
+FASTAPI_URL = "http://localhost:8001/predict"  # or your deployed FastAPI URL
 
 def classify_bird(image_file):
     """
-    Sends an image to the FastAPI ML service and gets the predicted bird label.
+    Sends an image to the FastAPI ML service for classification.
+    Returns: (predicted_label, confidence)
     """
     try:
-        files = {"file": image_file}
-        response = requests.post(FASTAPI_URL, files=files, timeout=30)
+        files = {"file": (image_file.name, image_file.read(), image_file.content_type)}
+        response = requests.post(FASTAPI_URL, files=files, timeout=10)
         response.raise_for_status()
-        result = response.json()
-        return {
-            "label": result.get("label"),
-            "confidence": result.get("confidence"),
-        }
+        data = response.json()
+        return data.get("label"), data.get("confidence")
     except requests.RequestException as e:
-        print(f"❌ ML service error: {e}")
-        return None
+        print(f"[ML_CLIENT] Error contacting ML service: {e}")
+        return None, None
