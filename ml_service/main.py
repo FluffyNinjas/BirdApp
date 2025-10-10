@@ -37,26 +37,36 @@ IMG_SIZE = (224, 224)  # Model input size
 
 @app.on_event("startup")
 async def load_model():
-    """Load the trained model when FastAPI starts"""
+    """Load the model from the training folder (one level above ml_service)."""
     global model, processor, LABELS
-    model_dir = Path("models/bird_model")
-    try:        
-        if not model_dir.exists():
-            logger.error(f"Model file not found at {model_dir}")
-            logger.info("Please copy your trained model to training/models/bird_model")
+
+    try:
+        # Get path to the current file (ml_service/main.py)
+        BASE_DIR = Path(__file__).resolve().parent
+
+        # Go UP one level, then into training/bird_model
+        model_dir = (BASE_DIR.parent / "training" / "bird_model").resolve()
+
+        logger.info(f"Looking for model in: {model_dir}")
+
+        # Check existence and contents
+        if not model_dir.exists() or not any(model_dir.iterdir()):
+            logger.error(f"❌ Model directory not found or empty: {model_dir}")
+            logger.info("Please ensure your trained model files are inside this folder.")
             return
 
+        # Load model + processor
         model = AutoModelForImageClassification.from_pretrained(model_dir)
         processor = AutoImageProcessor.from_pretrained(model_dir)
-        model.eval()  # Set model to evaluation mode
+        model.eval()
 
         LABELS = list(model.config.id2label.values())
-        logger.info("✅ Model loaded successfully!")
-        logger.info(f"Model input shape: {model.input_shape}")
-        
+        logger.info(f"✅ Model loaded successfully with {len(LABELS)} labels!")
+
     except Exception as e:
         logger.error(f"❌ Failed to load model: {e}")
         model = None
+
 
 @app.get("/")
 async def root():
@@ -73,10 +83,15 @@ async def root():
 @app.get("/health")
 async def health_check():
     """Health check endpoint"""
+    input_shape = None
+    if processor and "size" in processor.__dict__:
+        input_shape = processor.size  # usually {'height': 224, 'width': 224}
+
     return {
         "status": "healthy" if model is not None else "model_not_loaded",
         "model_loaded": model is not None,
-        "model_input_shape": str(model.input_shape) if model else None
+        "model_name": model.config._name_or_path if model else None,
+        "model_input_size": input_shape
     }
 
 @app.post("/predict")

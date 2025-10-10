@@ -5,8 +5,8 @@ from rest_framework import status
 from .models import Bird, UserBird, Capture
 from .serializers import CaptureSerializer, UserBirdSerializer
 from django.contrib.auth.models import User
-from backend.utils.ml_client import classify_bird  
-from backend.utils.ai_client import generate_bird_fact  # Stub for AI fun fact
+from utils.ml_client import classify_bird  
+from utils.ai_client import generate_bird_fact  # Stub for AI fun fact
 
 class CaptureBirdView(APIView):
     def post(self, request):
