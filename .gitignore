@@ -1,0 +1,47 @@
+# === Python ===
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.db
+*.sqlite3
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv/
+.ml_venv/
+backend/venv/
+ml_service/venv/
+
+# === Node / React / Flutter ===
+node_modules/
+build/
+dist/
+*.log
+
+# === Django ===
+*.pot
+*.pyc
+*.mo
+staticfiles/
+media/
+db.sqlite3
+
+# === FastAPI / ML Service ===
+__pycache__/
+*.pt
+*.bin
+bird_model/
+logs/
+
+# === Environment files ===
+.env
+*.env
+
+# === OS / IDE ===
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
