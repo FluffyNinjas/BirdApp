@@ -5,7 +5,8 @@ from rest_framework import status
 from .models import Bird, UserBird, Capture
 from .serializers import CaptureSerializer, UserBirdSerializer
 from django.contrib.auth.models import User
-from backend.utils.ml_client import classify_bird  # 👈 import your ML client
+from backend.utils.ml_client import classify_bird  
+from backend.utils.ai_client import generate_bird_fact  # Stub for AI fun fact
 
 class CaptureBirdView(APIView):
     def post(self, request):
@@ -37,7 +38,7 @@ class CaptureBirdView(APIView):
             user_bird.save()
 
         # 4️⃣ Optionally call AI to generate fun fact (stub for now)
-        ai_fact = f"This is a {bird.name}. Fun fact here!"
+        ai_fact = generate_bird_fact(bird.name)
 
         # 5️⃣ Save capture
         capture = Capture.objects.create(

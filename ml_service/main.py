@@ -127,7 +127,8 @@ async def predict_image(file: UploadFile = File(...)):
             logits = outputs.logits
             probs = torch.nn.functional.softmax(logits, dim=1).numpy()[0]
             predicted_index = np.argmax(probs)
-            confidence = probs[0][predicted_index].item()
+            confidence = float(probs[predicted_index])
+
 
         predicted_label = model.config.id2label[predicted_index]
         all_predictions = {
@@ -154,4 +155,4 @@ async def predict_image(file: UploadFile = File(...)):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=8001)
