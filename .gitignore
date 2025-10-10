@@ -45,3 +45,13 @@ logs/
 Thumbs.db
 .idea/
 .vscode/
+
+# Dataset folders
+dataset/
+dataset_split/
+
+# Models
+bird_model/
+
+# Secrets
+kaggle.json
