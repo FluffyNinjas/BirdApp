@@ -8,6 +8,9 @@ from django.contrib.auth.models import User
 from utils.ml_client import classify_bird  
 from utils.ai_client import generate_bird_fact  # Stub for AI fun fact
 
+
+CONFIDENCE_THRESHOLD = 0.5  # 50%
+
 class CaptureBirdView(APIView):
     def post(self, request):
         user = request.user if request.user.is_authenticated else None
@@ -23,7 +26,16 @@ class CaptureBirdView(APIView):
             return Response({"error": "Could not classify bird"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         # 2️⃣ Find the bird
-        print(f"Predicted label from model: {predicted_label}")
+        print(f"Predicted label from model: {predicted_label} with confidence {confidence}")
+
+        # 1a️⃣ Check confidence threshold
+        if confidence is None or confidence < CONFIDENCE_THRESHOLD:
+            return Response({
+                "bird_name": None,
+                "first_time": False,
+                "icon_url": None,
+                "ai_fact": "I don't know this bird. Try another image!"
+            }, status=status.HTTP_200_OK)
 
         try:
             bird = Bird.objects.get(label=predicted_label)
