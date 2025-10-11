@@ -14,7 +14,14 @@ def classify_bird(image_file):
         response = requests.post(FASTAPI_URL, files=files, timeout=10)
         response.raise_for_status()
         data = response.json()
-        return data.get("label"), data.get("confidence")
+        raw_label = data.get("label")
+        confidence = data.get("confidence")
+
+        # --- Clean up label: remove number prefix if present ---
+        if raw_label and '.' in raw_label:
+            raw_label = raw_label.split('.', 1)[1]  # '073.Blue_Jay' → 'Blue_Jay'
+
+        return raw_label, confidence
     except requests.RequestException as e:
         print(f"[ML_CLIENT] Error contacting ML service: {e}")
         return None, None

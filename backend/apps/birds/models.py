@@ -27,7 +27,9 @@ class UserBird(models.Model):
         unique_together = ('user', 'bird')
 
     def __str__(self):
-        return f"{self.user.username} - {self.bird.name}"
+        username = self.user.username if self.user else "Unknown User"
+        bird_name = self.bird.name if self.bird else "Unknown Bird"
+        return f"{username} - {bird_name}"
 
 
 # Stores each individual bird photo a user takes
@@ -40,4 +42,7 @@ class Capture(models.Model):
     captured_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"{self.user_bird.user.username} - {self.user_bird.bird.name} ({self.confidence:.2f})"
+        username = self.user_bird.user.username if self.user_bird and self.user_bird.user else "Unknown User"
+        bird_name = self.user_bird.bird.name if self.user_bird and self.user_bird.bird else "Unknown Bird"
+        confidence_str = f" ({self.confidence:.2f})" if self.confidence is not None else ""
+        return f"{username} - {bird_name}{confidence_str}"

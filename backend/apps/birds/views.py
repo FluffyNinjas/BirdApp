@@ -23,6 +23,8 @@ class CaptureBirdView(APIView):
             return Response({"error": "Could not classify bird"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         # 2️⃣ Find the bird
+        print(f"Predicted label from model: {predicted_label}")
+
         try:
             bird = Bird.objects.get(label=predicted_label)
         except Bird.DoesNotExist:
@@ -47,10 +49,12 @@ class CaptureBirdView(APIView):
             confidence=confidence,
             ai_fact=ai_fact
         )
+        icon_url = bird.icon.url if bird.icon else "/media/bird_icons/eagle.webp" # Default icon if none
 
+        # 6️⃣ Return response
         return Response({
             "bird_name": bird.name,
             "first_time": created,
-            "icon_url": bird.icon.url,
+            "icon_url": icon_url,
             "ai_fact": ai_fact,
         }, status=status.HTTP_201_CREATED)
