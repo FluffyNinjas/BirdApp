@@ -2,9 +2,18 @@ from rest_framework import serializers
 from .models import Bird, UserBird, Capture
 
 class BirdSerializer(serializers.ModelSerializer):
+    icon_url = serializers.SerializerMethodField()
+
     class Meta:
         model = Bird
-        fields = ['id', 'name', 'label', 'icon']
+        fields = ['id', 'name', 'label', 'icon_url']
+
+    def get_icon_url(self, obj):
+        if obj.icon:
+            return self.context['request'].build_absolute_uri(obj.icon.url)
+        return None
+
+
 
 class CaptureSerializer(serializers.ModelSerializer):
     class Meta:

@@ -3,7 +3,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from .models import Bird, UserBird, Capture
-from .serializers import CaptureSerializer, UserBirdSerializer
+from .serializers import BirdSerializer, CaptureSerializer, UserBirdSerializer
 from django.contrib.auth.models import User
 from utils.ml_client import classify_bird  
 from utils.ai_client import generate_bird_fact  # Stub for AI fun fact
@@ -70,3 +70,10 @@ class CaptureBirdView(APIView):
             "icon_url": icon_url,
             "ai_fact": ai_fact,
         }, status=status.HTTP_201_CREATED)
+
+
+class BirdListView(APIView):
+    def get(self, request):
+        birds = Bird.objects.all()
+        serializer = BirdSerializer(birds, many=True, context={'request': request})
+        return Response(serializer.data)

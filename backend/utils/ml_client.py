@@ -12,6 +12,7 @@ def classify_bird(image_file):
     try:
         files = {"file": (image_file.name, image_file.read(), image_file.content_type)}
         response = requests.post(FASTAPI_URL, files=files, timeout=10)
+        image_file.seek(0)  # Rewind the file pointer
         response.raise_for_status()
         data = response.json()
         raw_label = data.get("label")
